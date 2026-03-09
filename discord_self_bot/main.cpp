@@ -5,6 +5,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <nlohmann/json.hpp>
+#include <amqpcpp.h>
+#include <amqpcpp/libboostasio.h>
 
 #include "config.hpp"
 #include "logger.hpp"
@@ -39,6 +41,11 @@ void run_session(const std::string &token, const std::string &channel_id) {
     boost::asio::ip::tcp::resolver resolver(io_service);
     boost::beast::websocket::stream<boost::asio::ssl::stream<boost::asio::ip::tcp::socket> > websocket(
         io_service, context);
+
+    AMQP::LibBoostAsioHandler rabbit_handler(io_service);
+    AMQP::TcpConnection rabbit_connection(&rabbit_handler, AMQP::Address("amqp://guest:guest@localhost:5672/"));
+    AMQP::TcpChannel rabbit_channel(&rabbit_connection);
+    rabbit_channel.declareQueue("discord_messages", AMQP::durable);
 
     auto const results = resolver.resolve("gateway.discord.gg", "443");
     boost::asio::connect(boost::beast::get_lowest_layer(websocket), results);
@@ -105,7 +112,16 @@ void run_session(const std::string &token, const std::string &channel_id) {
                 if (auto &d = data["d"]; d["channel_id"] == channel_id) {
                     std::string content = d["content"];
                     std::string author = d["author"]["username"];
+                    std::string timestamp = d["timestamp"];
                     LOG_INFO("[" << author << "]: " << content);
+
+                    AMQP::Table headers;
+                    headers.set("author", author);
+                    headers.set("date", timestamp);
+                    AMQP::Envelope envelope(content.data(), content.length());
+                    envelope.setHeaders(headers);
+                    envelope.setDeliveryMode(2);
+                    rabbit_channel.publish("", "discord_messages", envelope);
                 }
             }
         }

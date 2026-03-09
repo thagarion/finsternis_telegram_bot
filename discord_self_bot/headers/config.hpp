@@ -16,8 +16,7 @@ public:
     std::string channel_id;
     int log_level = 2;
 
-    std::string redis_address;
-    std::string redis_port;
+    std::string amqp_address;
 
     Config() = delete;
 
@@ -31,7 +30,6 @@ public:
         discord_token = config_node["discord_token"].as<std::string>();
         channel_id = config_node["channel_id"].as<std::string>();
         log_level = config_node["log_level"].as<int>(2);
-        redis_address = config_node["redis_address"].as<std::string>("127.0.0.1");
-        redis_port = config_node["redis_port"].as<std::string>("6379");
+        amqp_address = config_node["amqp_address"].as<std::string>();
     }
 };
