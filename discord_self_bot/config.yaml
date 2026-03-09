@@ -1,0 +1,5 @@
+discord_token: "token"
+channel_id: "id"
+log_level: 2
+redis_address: "redis_address"
+redis_port: "port"
