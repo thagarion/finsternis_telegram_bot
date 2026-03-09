@@ -41,11 +41,13 @@ void run_session(const std::string &token, const std::string &channel_id) {
         io_service, context);
 
     auto const results = resolver.resolve("gateway.discord.gg", "443");
+    boost::asio::connect(boost::beast::get_lowest_layer(websocket), results);
 
     if (!SSL_set_tlsext_host_name(websocket.next_layer().native_handle(), "gateway.discord.gg")) {
         throw boost::beast::system_error(
             boost::beast::error_code(static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()));
     }
+
     websocket.next_layer().handshake(boost::asio::ssl::stream_base::client);
     websocket.set_option(boost::beast::websocket::stream_base::decorator(
         [](boost::beast::websocket::request_type &req) {
