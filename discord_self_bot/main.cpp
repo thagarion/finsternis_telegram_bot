@@ -37,7 +37,11 @@ void run_session(const std::string &token, const std::string &channel_id) {
     std::thread ioc_thread;
 
     boost::asio::io_service io_service;
-    boost::asio::ssl::context context(boost::asio::ssl::context::tlsv12_client);
+    boost::asio::ssl::context context(boost::asio::ssl::context::tlsv13_client); // Используй TLS 1.3
+    context.set_options(boost::asio::ssl::context::default_workarounds |
+                        boost::asio::ssl::context::no_sslv2 |
+                        boost::asio::ssl::context::no_sslv3);
+
     boost::asio::ip::tcp::resolver resolver(io_service);
     boost::beast::websocket::stream<boost::asio::ssl::stream<boost::asio::ip::tcp::socket> > websocket(
         io_service, context);
@@ -101,7 +105,7 @@ void run_session(const std::string &token, const std::string &channel_id) {
 
             boost::system::error_code code;
             websocket.read(flat_buffer, code);
-            if (code == boost::beast::websocket::error::closed || !is_active) break;
+            if (code == boost::beast::websocket::error::closed || !is_active) { break; }
             if (code) throw boost::beast::system_error{code};
 
             auto data = nlohmann::json::parse(boost::beast::buffers_to_string(flat_buffer.data()));

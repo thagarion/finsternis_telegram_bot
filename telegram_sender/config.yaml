@@ -1,0 +1,11 @@
+gemini_api: "gemini_api_key"
+amqp_address: "amqp_address"
+
+mimi_bot:
+  api: "bot_key"
+  chat: -1000000000000
+  thread: 0
+finsternis_bot:
+  api: "bot_key"
+  chat: -1000000000000
+  thread: 0
