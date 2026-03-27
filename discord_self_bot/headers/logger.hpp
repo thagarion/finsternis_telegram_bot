@@ -1,7 +1,10 @@
 #pragma once
-
-#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/utility/manipulators/add_value.hpp>
+#include <boost/log/expressions/formatters/if.hpp>
+#include <boost/log/expressions/formatters/stream.hpp>
+#include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/log/core.hpp>
+#include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/support/date_time.hpp>
@@ -31,25 +34,45 @@ public:
                 boost::log::expressions::attr<boost::log::attributes::current_thread_id::value_type>("ThreadID");
         auto fmt_severity = boost::log::expressions::attr<boost::log::trivial::severity_level>("Severity");
 
-        const boost::log::formatter log_format =
-                boost::log::expressions::format("[%1%] (%2%) [%3%] %4%") % fmt_time_stamp %
-                fmt_thread_id % fmt_severity % boost::log::expressions::smessage;
+        const boost::log::formatter debug_format =
+                boost::log::expressions::stream
+                << "[" << fmt_time_stamp << "] "
+                << "(" << fmt_thread_id << ") "
+                << "[" << fmt_severity << "] "
+                << "[" << boost::log::expressions::attr<std::string>("File") << ":"
+                << boost::log::expressions::attr<int>("Line") << "] "
+                << boost::log::expressions::smessage;
+
+        const boost::log::formatter info_format =
+                boost::log::expressions::stream
+                << "[" << fmt_time_stamp << "] "
+                << "(" << fmt_thread_id << ") "
+                << "[" << fmt_severity << "] "
+                << boost::log::expressions::smessage;
 
         // console sink
         const auto console_sink = boost::log::add_console_log(std::cout);
-        console_sink->set_formatter(log_format);
+        if (level <= boost::log::trivial::debug)
+            console_sink->set_formatter(debug_format);
+        else
+            console_sink->set_formatter(info_format);
 
         // fs sink
-        const auto fs_sink = boost::log::add_file_log(boost::log::keywords::file_name = "logs/%Y-%m-%d_%H-%M-%S.%N.log",
-                                                      boost::log::keywords::rotation_size = 10 * 1024 * 1024,
-                                                      boost::log::keywords::min_free_space = 30 * 1024 * 1024,
-                                                      boost::log::keywords::open_mode = std::ios_base::app);
-        fs_sink->set_formatter(log_format);
+        const auto fs_sink =
+                boost::log::add_file_log(boost::log::keywords::file_name = "logs/%Y-%m-%d_%H-%M-%S.%N.log",
+                                         boost::log::keywords::rotation_size = 10 * 1024 * 1024,
+                                         boost::log::keywords::min_free_space = 30 * 1024 * 1024,
+                                         boost::log::keywords::open_mode = std::ios_base::app);
+        fs_sink->set_formatter(debug_format);
         fs_sink->locked_backend()->auto_flush(true);
     }
 };
 
-#define LOG(level, arg) BOOST_LOG_TRIVIAL(level) << "[" << __FILE__ << ":" << __LINE__ << "] " << arg;
+#define LOG(level, arg) \
+BOOST_LOG_TRIVIAL(level) \
+<< boost::log::add_value("File", std::string(__FILE__)) \
+<< boost::log::add_value("Line", __LINE__) \
+<< arg;
 
 #define LOG_TRACE(arg) LOG(trace, arg);
 #define LOG_DEBUG(arg) LOG(debug, arg);

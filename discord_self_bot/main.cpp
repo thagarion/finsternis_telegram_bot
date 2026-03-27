@@ -47,7 +47,7 @@ void run_session(const std::string &token, const std::string &channel_id) {
         io_service, context);
 
     AMQP::LibBoostAsioHandler rabbit_handler(io_service);
-    AMQP::TcpConnection rabbit_connection(&rabbit_handler, AMQP::Address("amqp://guest:guest@localhost:5672/"));
+    AMQP::TcpConnection rabbit_connection(&rabbit_handler, Config::amqp_address);
     AMQP::TcpChannel rabbit_channel(&rabbit_connection);
     rabbit_channel.declareQueue("discord_messages", AMQP::durable);
 
@@ -139,8 +139,8 @@ void run_session(const std::string &token, const std::string &channel_id) {
 }
 
 int main() {
-    const auto config = Config("config.yaml");
-    Logger::Init(config.log_level);
+    Config::Read();
+    Logger::Init(Config::log_level);
 
     boost::asio::io_context signal_ioc;
     boost::asio::signal_set signals(signal_ioc);
@@ -159,7 +159,7 @@ int main() {
     while (is_active) {
         try {
             LOG_INFO("start listening")
-            run_session(config.discord_token, config.channel_id);
+            run_session(Config::discord_token, Config::channel_id);
         } catch (const std::exception &exception) {
             LOG_ERROR("session lost. exception: " << exception.what());
             if (is_active) {

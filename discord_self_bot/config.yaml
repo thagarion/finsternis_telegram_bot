@@ -1,4 +1,0 @@
-discord_token: "token"
-channel_id: "id"
-log_level: 2
-amqp_address: "amqp_address"
